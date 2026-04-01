@@ -95,6 +95,13 @@ class ACMOJClient:
 
         return result
 
+    def submit_code(self, problem_id: int, language: str, code_text: str) -> Optional[Dict]:
+        data = {"language": language, "code": code_text}
+        result = self._make_request("POST", f"/problem/{problem_id}/submit", data=data)
+        if result and 'id' in result:
+            self._save_submission_id(result['id'])
+        return result
+
     def get_submission_detail(self, submission_id: int) -> Optional[Dict]:
         return self._make_request("GET", f"/submission/{submission_id}")
 
@@ -136,6 +143,15 @@ def main():
         result = client.get_submission_detail(args.submission_id)
     elif args.command == "abort":
         result = client.abort_submission(args.submission_id)
+    elif args.command == "submit-code":
+        # Read file content
+        try:
+            with open(args.file, 'r') as f:
+                code_text = f.read()
+        except Exception as e:
+            print(f"Error reading code file: {e}")
+            return
+        result = client.submit_code(args.problem_id, args.language, code_text)
 
     if result:
         print(json.dumps(result))
@@ -146,3 +162,8 @@ def main():
 
 if __name__ == "__main__":
     main()
+    # Code submission sub-command
+    code_parser = subparsers.add_parser("submit-code", help="Submit code directly")
+    code_parser.add_argument("--problem-id", type=int, required=True, help="Problem ID")
+    code_parser.add_argument("--language", type=str, required=True, help="Language key, e.g., c++17")
+    code_parser.add_argument("--file", type=str, required=True, help="Path to code file to submit")
