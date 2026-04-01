@@ -1,0 +1,193 @@
+// Problem 076 - Linklist without name
+// Implementation of a simple doubly-linked list template `MyList`
+// Provides a subset of std::list-like operations plus `link` and `cut`.
+
+#pragma once
+
+#include <cstddef>
+
+template <typename ValueType>
+class MyList {
+    struct Node {
+        ValueType value;
+        Node* prev;
+        Node* next;
+        Node(const ValueType& v) : value(v), prev(nullptr), next(nullptr) {}
+    };
+
+    Node* head_ = nullptr;
+    Node* tail_ = nullptr;
+    int size_ = 0;
+
+    // Helper: get node at index [0, size_)
+    Node* node_at(int index) const {
+        if (index <= size_ / 2) {
+            Node* cur = head_;
+            for (int i = 0; i < index; ++i) cur = cur->next;
+            return cur;
+        } else {
+            Node* cur = tail_;
+            for (int i = size_ - 1; i > index; --i) cur = cur->prev;
+            return cur;
+        }
+    }
+
+public:
+    MyList() {}
+
+    MyList(MyList&& obj) noexcept {
+        head_ = obj.head_;
+        tail_ = obj.tail_;
+        size_ = obj.size_;
+        obj.head_ = obj.tail_ = nullptr;
+        obj.size_ = 0;
+    }
+
+    MyList(const MyList& obj) {
+        Node* cur = obj.head_;
+        while (cur) {
+            push_back(cur->value);
+            cur = cur->next;
+        }
+    }
+
+    ~MyList() { clear(); }
+
+    void push_back(const ValueType& value) {
+        Node* n = new Node(value);
+        if (!tail_) {
+            head_ = tail_ = n;
+        } else {
+            n->prev = tail_;
+            tail_->next = n;
+            tail_ = n;
+        }
+        ++size_;
+    }
+
+    void pop_back() {
+        if (!tail_) return; // robustness not required; assume valid usage
+        Node* t = tail_;
+        tail_ = tail_->prev;
+        if (tail_) tail_->next = nullptr; else head_ = nullptr;
+        delete t;
+        --size_;
+    }
+
+    void push_front(const ValueType& value) {
+        Node* n = new Node(value);
+        if (!head_) {
+            head_ = tail_ = n;
+        } else {
+            n->next = head_;
+            head_->prev = n;
+            head_ = n;
+        }
+        ++size_;
+    }
+
+    void pop_front() {
+        if (!head_) return; // assume valid usage
+        Node* h = head_;
+        head_ = head_->next;
+        if (head_) head_->prev = nullptr; else tail_ = nullptr;
+        delete h;
+        --size_;
+    }
+
+    ValueType& front() const {
+        // Signature follows given template (non-const ref from const method)
+        return const_cast<ValueType&>(head_->value);
+    }
+
+    ValueType& back() const {
+        return const_cast<ValueType&>(tail_->value);
+    }
+
+    void insert(int index, const ValueType& value) {
+        // Assume 0 <= index <= size_
+        if (index == 0) {
+            push_front(value);
+            return;
+        }
+        if (index == size_) {
+            push_back(value);
+            return;
+        }
+        Node* pos = node_at(index);
+        Node* n = new Node(value);
+        n->prev = pos->prev;
+        n->next = pos;
+        if (pos->prev) pos->prev->next = n;
+        pos->prev = n;
+        if (pos == head_) head_ = n; // safety, though index>0 implies not head
+        ++size_;
+    }
+
+    void erase(int index) {
+        // Assume 0 <= index < size_
+        if (index == 0) { pop_front(); return; }
+        if (index == size_ - 1) { pop_back(); return; }
+        Node* pos = node_at(index);
+        Node* p = pos->prev;
+        Node* n = pos->next;
+        if (p) p->next = n;
+        if (n) n->prev = p;
+        delete pos;
+        --size_;
+    }
+
+    int size() const { return size_; }
+
+    bool empty() const { return size_ == 0; }
+
+    void clear() {
+        Node* cur = head_;
+        while (cur) {
+            Node* nxt = cur->next;
+            delete cur;
+            cur = nxt;
+        }
+        head_ = tail_ = nullptr;
+        size_ = 0;
+    }
+
+    void link(const MyList& obj) {
+        Node* cur = obj.head_;
+        while (cur) {
+            push_back(cur->value);
+            cur = cur->next;
+        }
+    }
+
+    MyList cut(int index) {
+        // Split before node at `index`. Left part remains here, right part returned.
+        if (index <= 0) {
+            MyList res;
+            // move this into res
+            res.head_ = head_;
+            res.tail_ = tail_;
+            res.size_ = size_;
+            head_ = tail_ = nullptr;
+            size_ = 0;
+            return res;
+        }
+        if (index >= size_) {
+            return MyList();
+        }
+        Node* first_right = node_at(index);
+        MyList res;
+        res.head_ = first_right;
+        res.tail_ = tail_;
+        res.size_ = size_ - index;
+
+        // Detach
+        tail_ = first_right->prev;
+        if (tail_) tail_->next = nullptr;
+        first_right->prev = nullptr;
+
+        size_ = index;
+        return res;
+    }
+};
+
