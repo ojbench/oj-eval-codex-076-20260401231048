@@ -129,6 +129,12 @@ def main():
     abort_parser = subparsers.add_parser("abort", help="Abort submission evaluation")
     abort_parser.add_argument("--submission-id", type=int, required=True, help="Submission ID")
 
+    # Code submission sub-command
+    code_parser = subparsers.add_parser("submit-code", help="Submit code directly")
+    code_parser.add_argument("--problem-id", type=int, required=True, help="Problem ID")
+    code_parser.add_argument("--language", type=str, required=True, help="Language key, e.g., c++17")
+    code_parser.add_argument("--file", type=str, required=True, help="Path to code file to submit")
+
     args = parser.parse_args()
 
     if not args.token:
@@ -162,8 +168,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    # Code submission sub-command
-    code_parser = subparsers.add_parser("submit-code", help="Submit code directly")
-    code_parser.add_argument("--problem-id", type=int, required=True, help="Problem ID")
-    code_parser.add_argument("--language", type=str, required=True, help="Language key, e.g., c++17")
-    code_parser.add_argument("--file", type=str, required=True, help="Path to code file to submit")
